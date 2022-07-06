@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+	"time"
+)
 
 func main() {
 
@@ -11,15 +15,15 @@ func main() {
 	go func() {
 		for i := 0; i < 10; i++ {
 			ch <- i + 1
-			fmt.Println("produced ch one", i+1)
+			fmt.Println("produced channel1", i+1)
 		}
 		close(ch)
 	}()
     // Produced 2nd Channel
 	go func() {
-		for i := 11; i < 21; i++ {
+		for i := 10; i < 21; i++ {
 			ch1 <- i + 1
-			fmt.Println("produced ch two", i+1)
+			fmt.Println("produced channel2 ", i+1)
 		}
 		close(ch1)
 	}()
@@ -27,18 +31,26 @@ func main() {
 	go Produce(ch, ch1, out)
 
 	for v := range out {
-		fmt.Println("consumed ch three", v)
+		fmt.Println("consumed channel3", v)
+		time.Sleep(2 * time.Second)
 	}
 
 }
 //Produced 3rd channel from 1st and 2nd channel
 
 func Produce(ch, ch1, out chan int) {
-	for v := range ch {
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func(){for v := range ch {
 		out <- v
 	}
-	for v := range ch1 {
+	wg.Done()
+	}()
+	go func(){for v := range ch1 {
 		out <- v
 	}
+	wg.Done()
+	}()
+	wg.Wait()
 	close(out)
 }
